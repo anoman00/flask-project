@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="{{ url_for('static', filename='skulpt/skulpt.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='skulpt/skulpt-stdlib.js') }}"></script>
+    <script src="{{ url_for('static', filename='lib/codemirror.js') }}"></script>
+    <link
+      href="{{ url_for('static', filename='lib/codemirror.css') }}"
+      rel="stylesheet"
+    />
+    <script src="{{ url_for('static', filename='mode/python/python.js') }}"></script>
+    <link
+      href="{{ url_for('static', filename='theme/dracula.css') }}"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body>
+    <script type="text/javascript">
+      var editor;
+      function outf(text) {
+        var mypre = document.getElementById("output");
+        mypre.innerHTML = mypre.innerHTML + text;
+      }
+      function builtinRead(x) {
+        if (
+          Sk.builtinFiles === undefined ||
+          Sk.builtinFiles["files"][x] === undefined
+        )
+          throw "File not found: '" + x + "'";
+        return Sk.builtinFiles["files"][x];
+      }
+      function runit() {
+        var prog = editor.doc.getValue();
+        var mypre = document.getElementById("output");
+        mypre.innerHTML = "";
+        Sk.pre = "output";
+        Sk.configure({ output: outf, read: builtinRead });
+        (Sk.TurtleGraphics || (Sk.TurtleGraphics = {})).target = "mycanvas";
+        var myPromise = Sk.misceval.asyncToPromise(function() {
+          return Sk.importMainWithBody("<stdin>", false, prog, true);
+        });
+        var returnedAnswer = mypre.innerHTML
+        document.getElementById("answer").value = returnedAnswer;
+        myPromise.then(
+          function(mod) {
+            console.log("success");
+          },
+          function(err) {
+            console.log(err.toString());
+          }
+        );
+      }
+    </script>
+
+    <h3>This code editor runs python2.7, use print() to see your result at the bottom of the page</h3>
+
+    <form method='POST'>
+        <ol>
+            {% for question in questions %}
+            <li>{{ question.question }}</li>
+      <textarea class="textarea-class" id="editor" name="textbox">
+def your_function():
+  # your code
+
+print(your_function())
+</textarea><br />
+      <button type="button" onclick="runit()">Run</button>
+      <input type="text" name="username" value="Enter a Username" />
+      <input type="hidden" name="questionId" value="{{ question.id }}" />
+      <input type="hidden" id="answer" name="returnedAnswer" value="">
+      <button type="submit" name="submit">Submit</button>
+    </form>
+    {% endfor %}
+  </ol>
+    <script>
+      var textareas = document.querySelectorAll(".textarea-class")
+
+      for (var i = 1; i < textareas.length; i++) {
+        CodeMirror.fromTextArea(textareas[i], {
+        mode: {
+          name: "python",
+          version: 2
+        },
+        theme: "dracula",
+        lineNumbers: true
+      });
+    }
+
+      var editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+        mode: {
+          name: "python",
+          version: 2
+        },
+        theme: "dracula",
+        lineNumbers: true
+      });
+    </script>
+    <pre id="output"></pre>
+    <div id="mycanvas"></div>
+  </body>
+</html>
